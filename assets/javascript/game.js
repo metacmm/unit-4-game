@@ -40,7 +40,7 @@ $(document).ready(function () {
     });
 
     $("#btn-attack").on("click", function(){
-        if (playerObj === null || playerObj === null){
+        if (playerObj === null || defenderObj === null){
             return;
         }
         playerObj.hp -= defenderObj.cap;
@@ -48,16 +48,35 @@ $(document).ready(function () {
         playerObj.ap += playerObj.ap;
         
         refreshWindow();
-        /** Check if win or lose*/
+        /** check if won*/
         if ($("#enemy-grid").is(':empty')){
-            //setWinning status
+            var p1 = $("<p>");
+            p1.text("You Won!!! GAME OVER!!!");
+            $("#info-grid").append(p1);
+            var btn_Restart = $("<button>");
+            btn_Restart.text("Restart");
+            btn_Restart.attr("id","btn-restart");
+            $("#restart-grid").append(btn_Restart);
+            defenderObj = null;
+            playerObj = null;
         }
+        /** check if lost */
         else if(playerObj.hp < 0){
-            //setLosing stauts
+            var p1 = $("<p>");
+            p1.text("You've been defeated...GAME OVER!!!");
+            $("#info-grid").append(p1);
+            var btn_Restart = $("<button>");
+            btn_Restart.text("Restart");
+            btn_Restart.attr("id","btn-restart");
+            $("#restart-grid").append(btn_Restart);
+            defenderObj = null;
+            playerObj = null;
         }
 
         /** Check if defender is defeated*/
-        if (defenderObj.hp <= 0){
+        else if (defenderObj.hp < 0){
+            var p1 = $("<p>");
+            p1.text("You have defeated " + defenderObj.name + ", you can choose to finght another enemy.");
             defenderObj = null;
             $("#defender-grid").empty();
         }
@@ -70,6 +89,7 @@ $(document).ready(function () {
             if (characters[i].id === div.id){
                 defenderDiv = div;
                 $("#defender-grid").append(defenderDiv);
+                defenderDiv.classList.add("defender-group");
                 defenderObj = characters[i];
             }
         }
@@ -94,7 +114,14 @@ $(document).ready(function () {
             }
         }
         
-
+        /** update the explanation paragraph */
+        $("#info-grid").empty();
+        var p1 = $("<p>");
+        p1.text("You attacked " + defenderObj.name + " for " + playerObj.ap + " damages.");
+        var p2 = $("<p>"); 
+        p2.text(defenderObj.name + " attacked you back for " + defenderObj.cap + " damage. ");
+        $("#info-grid").append(p1);
+        $("#info-grid").append(p2);
 
     }
 
