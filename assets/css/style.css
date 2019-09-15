@@ -1,0 +1,14 @@
+.character-group{
+    border: 2px solid green;
+    background-color:black;
+    width: 200px;
+    height: 200px;
+    margin: 1em;
+}
+.enemy-group{
+    background-color: blue;
+}
+
+
+
+/*@media query*/
