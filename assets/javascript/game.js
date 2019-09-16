@@ -106,6 +106,8 @@ $(document).ready(function () {
             isRestartButton = false;
         }
         else if (status === "ready") {
+            infoText = null;
+            isRestartButton = false;
             var playerDiv = $("#" + playerObj.id);
             $("#player-grid").append(playerDiv);
             if (defenderObj !== null) {
@@ -118,8 +120,7 @@ $(document).ready(function () {
                 $("#enemy-grid").append(enemyDiv);
                 enemyDiv.addClass("enemy-group");
             });
-            infoText = null;
-            isRestartButton = false;
+
 
         }
         else if (status === "inprogress") {
