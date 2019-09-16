@@ -1,12 +1,18 @@
 $(document).ready(function () {
-    //create images for each characters
+
+    /** variables for the game objects, use object.id to find the html elements */
+    var characterToSelect = [];
+    var playerObj = null; //player object
+    var defenderObj = null; //defender object
+    var enemies = []; //remaining enemies object array
+
     function startGame() {
+        characterToSelect = characters;
+        status = "start";
+        refreshWindow(status);
     }
 
-    var playerObj = null; 
-    var defenderObj = null; 
-    var playerDiv = null;
-    var defenderDiv = null;
+    /** event handler of figure clicking */
     $(".character-group").on("click", function () {
         /** if you character is empty, select character*/
         if ($("#player-grid").is(':empty')) {
@@ -25,68 +31,139 @@ $(document).ready(function () {
                     console.log(enemyDiv);
                 }
             }
-        } 
+        }
         /** choose defender from the enemy class figures*/
-        else if($("#defender-grid").is(':empty') && this.id !== playerObj.id){
+        else if ($("#defender-grid").is(':empty') && this.id !== playerObj.id) {
             pickDefender(this);
-            // defenderDiv = this;
-            // for (var i = 0; i < characters.length; i++) {
-            //     if (characters[i].id === defenderDiv.id) {
-            //         $("#defender-grid").append(defenderDiv);
-            //         defenderObj = characters[i];
-            //     }
-            // }
         }
     });
 
-    $("#btn-attack").on("click", function(){
-        if (playerObj === null || defenderObj === null){
+    $("#btn-attack").on("click", function () {
+        if (playerObj === null || defenderObj === null) {
             return;
         }
         playerObj.hp -= defenderObj.cap;
         defenderObj.hp -= playerObj.ap;
         playerObj.ap += playerObj.ap;
-        
+
         refreshWindow();
         /** check if won*/
-        if ($("#enemy-grid").is(':empty')){
-            var p1 = $("<p>");
-            p1.text("You Won!!! GAME OVER!!!");
-            $("#info-grid").append(p1);
-            var btn_Restart = $("<button>");
-            btn_Restart.text("Restart");
-            btn_Restart.attr("id","btn-restart");
-            $("#restart-grid").append(btn_Restart);
+        if ($("#enemy-grid").is(':empty')) {
+            setInfoGrid("You Won!!! GAME OVER!!!");
+            setRestartButton();
             defenderObj = null;
             playerObj = null;
         }
         /** check if lost */
-        else if(playerObj.hp < 0){
-            var p1 = $("<p>");
-            p1.text("You've been defeated...GAME OVER!!!");
-            $("#info-grid").append(p1);
-            var btn_Restart = $("<button>");
-            btn_Restart.text("Restart");
-            btn_Restart.attr("id","btn-restart");
-            $("#restart-grid").append(btn_Restart);
+        else if (playerObj.hp < 0) {
+            setInfoGrid("You've been defeated...GAME OVER!!!");
+            setRestartButton();
             defenderObj = null;
             playerObj = null;
         }
-
         /** Check if defender is defeated*/
-        else if (defenderObj.hp < 0){
-            var p1 = $("<p>");
-            p1.text("You have defeated " + defenderObj.name + ", you can choose to finght another enemy.");
+        else if (defenderObj.hp < 0) {
+            setInfoGrid("You have defeated " + defenderObj.name + ", you can choose to finght another enemy.");
             defenderObj = null;
             $("#defender-grid").empty();
         }
 
     });
 
+    /** totally six status ["start", "ready", "inprogress", "lost", "defeated", "won"] to control the screen refresh
+     *  start - new game started, waiting to select the characters
+     *  ready - player and defender characters are selected
+     *  inprogress - player attacked defender and no one loses yet
+     *  lost - player hp is less than 0
+     *  defeated - current defender hp is less than 0
+     *  won - enemy array is empty
+    */
+    function refreshWindow(status) {
+        var infoText;
+        var isRestartButton;
+        if (status === "start") {
+            for (var i = 0; i < characterToSelect.length; i++) {
+                var figToSelect = $("#" + characterToSelect[i].id);
+                figToSelect.addClass("character-group");
+                $("#character-grid").append(figToSelect);
+            }
+            $("player-grid").empty();
+            $("enemy-grid").empty();
+            $("defender-grid").empty();
+            infoText = null;
+            isRestartButton = false;
+        }
+        else if (status === "ready") {
+            var playerDiv = $("#" + playerObj.id);
+            $("#player-grid").append(playerDiv);
+            var defenderDiv = $("#" + defenderObj.id);
+            $("#defender-grid").append(defenderDiv);
+            defenderDiv.addClass("defender-group");
+
+            enemies.forEach(element => {
+                var enemyDiv = $("#" + element.id);
+                $("enemy-grid").append(enemyDiv);
+                enemyDiv.addClass("enemy-group");
+            });
+            infoText = null;
+            isRestartButton = false;
+        }
+        else if (status === "inprogress") {
+            updateHP(playerObj);
+            updateHP(defenderObj);
+            infoText = "You attacked " + defenderObj.name + " for " + playerObj.ap + " damages. " +
+                defenderObj.name + " attacked you back for " + defenderObj.cap + " damage.";
+            isRestartButton = false;
+        }
+        else if (statuts === "defeated") {
+            updateHP(playerObj);
+            updateHP(defenderObj);
+            $("#defender-grid").empty();
+            infoText = "You have defeated " + defenderObj.name + ", you can choose to finght another enemy.";
+            isRestartButton = false;
+        }
+        else if (status === "lost") {
+            infoText = "You've been defeated...GAME OVER!!!";
+            isRestartButton = true;
+        }
+        else if (status === "won") {
+            infoText = "You Won!!! GAME OVER!!!";
+            isRestartButton = true;
+        }
+
+        /** update the explanation paragraph */
+        var text = "You attacked " + defenderObj.name + " for " + playerObj.ap + " damages. " +
+            defenderObj.name + " attacked you back for " + defenderObj.cap + " damage.";
+        setInfoGrid(text);
+    }
+
+
+    /** set info-grid */
+    function setInfoGrid(text) {
+        $("#info-grid").empty();
+        if (text !== null) {
+            var p1 = $("<p>");
+            p1.text(text);
+            $("#info-grid").append(p1);
+        }
+    }
+
+    /** set restart button */
+    function setRestartButton(isAvailable) {
+        $("#restart-grid").empty();
+        if (isAvailable) {
+            var btn_Restart = $("<button>");
+            btn_Restart.text("Restart");
+            btn_Restart.attr("id", "btn-restart");
+            $("#restart-grid").append(btn_Restart);
+        }
+    }
+
+
     /** set defenderObj from the selected div */
-    function pickDefender(div){
-        for(var i = 0; i < characters.length; i++){
-            if (characters[i].id === div.id){
+    function pickDefender(div) {
+        for (var i = 0; i < characters.length; i++) {
+            if (characters[i].id === div.id) {
                 defenderDiv = div;
                 $("#defender-grid").append(defenderDiv);
                 defenderDiv.classList.add("defender-group");
@@ -95,35 +172,18 @@ $(document).ready(function () {
         }
     }
 
-    function refreshWindow(){
-        /** update playerDiv and defenderDiv according to object new property value */
-        for (var i = 0; i < playerDiv.childNodes.length; i++){
-            if(typeof playerDiv.childNodes[i].classList !== "undefined" && 
-            playerDiv.childNodes[i].classList.contains("hp-value")){
-                var playerHp = playerDiv.childNodes[i];
-                playerHp.textContent = playerObj.hp;
+    function updateHP(obj) {
+        var div = $("#" + obj.id);
+        for (var i = 0; i < div.childNodes.length; i++) {
+            if (typeof div.childNodes[i].classList !== "undefined" &&
+                div.childNodes[i].classList.contains("hp-value")) {
+                var hpElement = playerDiv.childNodes[i];
+                hpElement.textContent = obj.hp;
                 break;
             }
         }
-
-        for (var i = 0; i < defenderDiv.childNodes.length; i++){
-            if (typeof defenderDiv.childNodes[i].classList !== "undefined" &&
-            defenderDiv.childNodes[i].classList.contains("hp-value")){
-                var defenderHp = defenderDiv.childNodes[i];
-                defenderHp.textContent = defenderObj.hp;
-            }
-        }
-        
-        /** update the explanation paragraph */
-        $("#info-grid").empty();
-        var p1 = $("<p>");
-        p1.text("You attacked " + defenderObj.name + " for " + playerObj.ap + " damages.");
-        var p2 = $("<p>"); 
-        p2.text(defenderObj.name + " attacked you back for " + defenderObj.cap + " damage. ");
-        $("#info-grid").append(p1);
-        $("#info-grid").append(p2);
-
     }
+    
 
 
 
