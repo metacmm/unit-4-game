@@ -1,13 +1,19 @@
 $(document).ready(function () {
 
     /** variables for the game objects, use object.id to find the html elements */
-    var characterToSelect = [];
-    var playerObj = null; //player object
-    var defenderObj = null; //defender object
-    var enemies = []; //remaining enemies object array
+    var characterToSelect;      //deep copy of characters array for this game session
+    var playerObj;              //player object
+    var defenderObj;            //defender object
+    var enemies;                //remaining enemies object array
+    var status;                 //track the game status
+
+    startGame();
 
     function startGame() {
-        characterToSelect = characters;
+        defenderObj = null;
+        playerObj = null;
+        characterToSelect = JSON.parse(JSON.stringify(characters));
+        enemies = [];
         status = "start";
         refreshWindow(status);
     }
@@ -15,59 +21,63 @@ $(document).ready(function () {
     /** event handler of figure clicking */
     $(".character-group").on("click", function () {
         /** if you character is empty, select character*/
-        if ($("#player-grid").is(':empty')) {
-            playerDiv = this;
-            for (var i = 0; i < characters.length; i++) {
+        if (playerObj === null) {
+            for (var i = 0; i < characterToSelect.length; i++) {
                 /** move the clicked player div to player grid */
-                if (characters[i].id === playerDiv.id) {
-                    $("#player-grid").append(playerDiv);
-                    playerObj = characters[i];
+                if (characterToSelect[i].id === this.id) {
+                    playerObj = characterToSelect[i];
                 }
                 /** move the rest of the character div to enemy grid */
                 else {
-                    var enemyDiv = $("#" + characters[i].id);
-                    $("#enemy-grid").append(enemyDiv);
-                    enemyDiv.addClass("enemy-group");
-                    console.log(enemyDiv);
+                    enemies.push(characterToSelect[i]);
                 }
             }
+            refreshWindow("ready"); //game status is not ready yet, just use this status to refresh window
         }
         /** choose defender from the enemy class figures*/
-        else if ($("#defender-grid").is(':empty') && this.id !== playerObj.id) {
-            pickDefender(this);
+        else if (defenderObj === null && this.id !== playerObj.id) {
+            for (var i = 0; i < enemies.length; i++) {
+                if (this.id === enemies[i].id) {
+                    defenderObj = enemies[i];
+                    enemies.splice(i, 1); //remove this object from enemies array
+                }
+            }
+            status = "ready";
+            refreshWindow(status);
         }
+
     });
 
     $("#btn-attack").on("click", function () {
-        if (playerObj === null || defenderObj === null) {
-            return;
-        }
-        playerObj.hp -= defenderObj.cap;
-        defenderObj.hp -= playerObj.ap;
-        playerObj.ap += playerObj.ap;
+        if (status === "ready" || status === "inprogress") {
+            playerObj.hp -= defenderObj.cap;
+            defenderObj.hp -= playerObj.ap;
+            playerObj.ap += playerObj.ap;
+            status = "inprogress";
 
-        refreshWindow();
-        /** check if won*/
-        if ($("#enemy-grid").is(':empty')) {
-            setInfoGrid("You Won!!! GAME OVER!!!");
-            setRestartButton();
-            defenderObj = null;
-            playerObj = null;
+            refreshWindow(status);
+            /** Check if defender is defeated*/
+            if (defenderObj.hp <= 0) {   
+                status = "defeated";
+                refreshWindow(status);
+                defenderObj = null;
+            }
+            
+            /** check if won*/
+            if (enemies.length === 0 && defenderObj === null) {
+                status = "won";
+                refreshWindow(status);
+            }
+            /** check if lost */
+            else if (playerObj.hp <= 0) {
+                status = "lost";
+                refreshWindow(status);
+            }
         }
-        /** check if lost */
-        else if (playerObj.hp < 0) {
-            setInfoGrid("You've been defeated...GAME OVER!!!");
-            setRestartButton();
-            defenderObj = null;
-            playerObj = null;
-        }
-        /** Check if defender is defeated*/
-        else if (defenderObj.hp < 0) {
-            setInfoGrid("You have defeated " + defenderObj.name + ", you can choose to finght another enemy.");
-            defenderObj = null;
-            $("#defender-grid").empty();
-        }
+    });
 
+    $("#btn-restart").on("click", function () {
+        startGame();
     });
 
     /** totally six status ["start", "ready", "inprogress", "lost", "defeated", "won"] to control the screen refresh
@@ -83,30 +93,31 @@ $(document).ready(function () {
         var isRestartButton;
         if (status === "start") {
             for (var i = 0; i < characterToSelect.length; i++) {
-                var figToSelect = $("#" + characterToSelect[i].id);
-                figToSelect.addClass("character-group");
+                var figToSelect = createFigure(characterToSelect[i]);
                 $("#character-grid").append(figToSelect);
             }
-            $("player-grid").empty();
-            $("enemy-grid").empty();
-            $("defender-grid").empty();
+            $("#player-grid").empty();
+            $("#enemy-grid").empty();
+            $("#defender-grid").empty();
             infoText = null;
             isRestartButton = false;
         }
         else if (status === "ready") {
             var playerDiv = $("#" + playerObj.id);
             $("#player-grid").append(playerDiv);
-            var defenderDiv = $("#" + defenderObj.id);
-            $("#defender-grid").append(defenderDiv);
-            defenderDiv.addClass("defender-group");
-
+            if (defenderObj !== null) {
+                var defenderDiv = $("#" + defenderObj.id);
+                $("#defender-grid").append(defenderDiv);
+                defenderDiv.addClass("defender-group");
+            }
             enemies.forEach(element => {
                 var enemyDiv = $("#" + element.id);
-                $("enemy-grid").append(enemyDiv);
+                $("#enemy-grid").append(enemyDiv);
                 enemyDiv.addClass("enemy-group");
             });
             infoText = null;
             isRestartButton = false;
+
         }
         else if (status === "inprogress") {
             updateHP(playerObj);
@@ -115,11 +126,11 @@ $(document).ready(function () {
                 defenderObj.name + " attacked you back for " + defenderObj.cap + " damage.";
             isRestartButton = false;
         }
-        else if (statuts === "defeated") {
+        else if (status === "defeated") {
             updateHP(playerObj);
             updateHP(defenderObj);
             $("#defender-grid").empty();
-            infoText = "You have defeated " + defenderObj.name + ", you can choose to finght another enemy.";
+            infoText = "You have defeated " + defenderObj.name + ", you can choose to fight another enemy.";
             isRestartButton = false;
         }
         else if (status === "lost") {
@@ -132,11 +143,30 @@ $(document).ready(function () {
         }
 
         /** update the explanation paragraph */
-        var text = "You attacked " + defenderObj.name + " for " + playerObj.ap + " damages. " +
-            defenderObj.name + " attacked you back for " + defenderObj.cap + " damage.";
-        setInfoGrid(text);
+        setInfoGrid(infoText);
+        setRestartButton(isRestartButton);
     }
 
+    /** create figure div */
+    function createFigure(obj){
+        var div = $("<div>");
+        div.addClass("character-group");
+        div.attr("id", obj.id);
+
+        var p1 = $("<p>").addClass("text-center figure-caption my-0");
+        p1.text(obj.name);
+        div.append(p1);
+
+        var img = $("<img>").addClass("w-100 h-75 m-0 figure-img img-fluid");
+        img.attr("src", obj.imageUrl);
+        div.append(img);
+
+        var p2 = $("<p>").addClass("hp-value text-center figure-caption");
+        p2.text(obj.hp);
+        div.append(p2);
+
+        return div;
+    }
 
     /** set info-grid */
     function setInfoGrid(text) {
@@ -150,40 +180,32 @@ $(document).ready(function () {
 
     /** set restart button */
     function setRestartButton(isAvailable) {
-        $("#restart-grid").empty();
+        //$("#restart-grid").empty();
         if (isAvailable) {
-            var btn_Restart = $("<button>");
-            btn_Restart.text("Restart");
-            btn_Restart.attr("id", "btn-restart");
-            $("#restart-grid").append(btn_Restart);
+            // var btn_Restart = $("<button>");
+            // btn_Restart.text("Restart");
+            // btn_Restart.addClass("btn-restart");
+            // btn_Restart.attr("type","button");
+            // $("#restart-grid").append(btn_Restart);
+            $("#btn-restart").css("visibility", "visible");
         }
-    }
-
-
-    /** set defenderObj from the selected div */
-    function pickDefender(div) {
-        for (var i = 0; i < characters.length; i++) {
-            if (characters[i].id === div.id) {
-                defenderDiv = div;
-                $("#defender-grid").append(defenderDiv);
-                defenderDiv.classList.add("defender-group");
-                defenderObj = characters[i];
-            }
+        else{
+            $("#btn-restart").css("visibility", "hidden");
         }
     }
 
     function updateHP(obj) {
         var div = $("#" + obj.id);
-        for (var i = 0; i < div.childNodes.length; i++) {
-            if (typeof div.childNodes[i].classList !== "undefined" &&
-                div.childNodes[i].classList.contains("hp-value")) {
-                var hpElement = playerDiv.childNodes[i];
+        for (var i = 0; i < div[0].childNodes.length; i++) {
+            if (typeof div[0].childNodes[i].classList !== "undefined" &&
+                div[0].childNodes[i].classList.contains("hp-value")) {
+                var hpElement = div[0].childNodes[i];
                 hpElement.textContent = obj.hp;
                 break;
             }
         }
     }
-    
+
 
 
 
