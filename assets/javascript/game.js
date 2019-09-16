@@ -18,8 +18,14 @@ $(document).ready(function () {
         refreshWindow(status);
     }
 
+    $("#btn-restart").on("click", function () {
+        startGame();
+    });
+
+
     /** event handler of figure clicking */
-    $(".character-group").on("click", function () {
+    /** !!! this line is important for dynamically added element event handler !!!*/
+    $(".container").on("click", ".character-group", function () {
         /** if you character is empty, select character*/
         if (playerObj === null) {
             for (var i = 0; i < characterToSelect.length; i++) {
@@ -76,9 +82,6 @@ $(document).ready(function () {
         }
     });
 
-    $("#btn-restart").on("click", function () {
-        startGame();
-    });
 
     /** totally six status ["start", "ready", "inprogress", "lost", "defeated", "won"] to control the screen refresh
      *  start - new game started, waiting to select the characters

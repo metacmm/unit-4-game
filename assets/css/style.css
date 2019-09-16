@@ -1,3 +1,7 @@
+body{
+    background-image: url("../images/background.jpg");
+    background-size: 100%;
+}
 .character-group{
     border: 2px solid green;
     background-color:rgb(255, 255, 255);
@@ -9,6 +13,7 @@
 .enemy-group{
     background-color: red;
     border: 2px solid black;
+    float: left;
 }
 
 .defender-group{
